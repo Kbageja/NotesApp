@@ -60,12 +60,7 @@ const Dashboard: React.FC = () => {
   }
 };
 
-  const maskEmail = (email: string) => {
-    const [username, domain] = email.split('@');
-    const maskedUsername = 'x'.repeat(username.length);
-    const maskedDomain = 'x'.repeat(domain.split('.')[0].length) + '.' + domain.split('.')[1];
-    return `${maskedUsername}@${maskedDomain}`;
-  };
+
 
   const filteredNotes = notes?.filter(note => 
     note.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -139,7 +134,7 @@ const Dashboard: React.FC = () => {
                 </div>
               ) : (
                 <div className="space-y-3">
-                  {filteredNotes.map((note, index) => (
+                  {filteredNotes.map((note) => (
                     <NoteCard
                       key={note.id}
                       note={note}
