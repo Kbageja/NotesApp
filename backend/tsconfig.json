@@ -13,7 +13,8 @@
     "resolveJsonModule": true,
     "declaration": true,
     "declarationMap": true,
-    "sourceMap": true
+    "sourceMap": true,
+    "types": ["node"]   // 👈 this line is the key
   },
   "include": ["src/**/*", "test-email.js"],
   "exclude": ["node_modules", "dist"]

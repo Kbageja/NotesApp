@@ -12,40 +12,51 @@ export interface AuthRequest extends Request {
   };
 }
 
-export const authenticate = async (req: AuthRequest, res: Response, next: NextFunction): Promise<void> => {
+/**
+ * Authenticate middleware
+ * Checks for a valid JWT token and attaches user info to req.user
+ */
+export const authenticate = async (
+  req: AuthRequest,
+  res: Response,
+  next: NextFunction
+): Promise<void> => {
   try {
     const token = req.header('Authorization')?.replace('Bearer ', '');
-
     if (!token) {
-      sendErrorResponse(res, 401, 'Access denied. No token provided.');
-      return;
+      return sendErrorResponse(res, 401, 'Access denied. No token provided.');
     }
 
     const decoded: JWTPayload = verifyToken(token);
-  const user = await User.findById(decoded.userId).select('-password') as import('../types').DBUser | null;
 
+    const user = await User.findById(decoded.userId).select('-password');
     if (!user) {
-      sendErrorResponse(res, 401, 'Invalid token. User not found.');
-      return;
+      return sendErrorResponse(res, 401, 'Invalid token. User not found.');
     }
 
     req.user = {
       id: user._id.toString(),
       email: user.email,
       name: user.name,
-      isVerified: user.isVerified
+      isVerified: user.isVerified,
     };
 
     next();
-  } catch (error) {
-    sendErrorResponse(res, 401, 'Invalid token.');
+  } catch (error: any) {
+    if (error.name === 'TokenExpiredError') {
+      return sendErrorResponse(res, 401, 'Token expired. Please log in again.');
+    }
+    return sendErrorResponse(res, 401, 'Invalid token.');
   }
 };
 
+/**
+ * Require verification middleware
+ * Ensures the authenticated user has a verified account
+ */
 export const requireVerification = (req: AuthRequest, res: Response, next: NextFunction): void => {
   if (!req.user?.isVerified) {
-    sendErrorResponse(res, 403, 'Account not verified. Please verify your account.');
-    return;
+    return sendErrorResponse(res, 403, 'Account not verified. Please verify your account.');
   }
   next();
 };
