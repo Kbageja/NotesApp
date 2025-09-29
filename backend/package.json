@@ -25,9 +25,7 @@
     "mongoose": "^8.18.2",
     "morgan": "^1.10.1",
     "nodemailer": "^7.0.6",
-    "twilio": "^5.10.1"
-  },
-  "devDependencies": {
+    "twilio": "^5.10.1",
     "@types/bcryptjs": "^3.0.0",
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
@@ -35,8 +33,10 @@
     "@types/morgan": "^1.9.10",
     "@types/node": "^24.5.2",
     "@types/nodemailer": "^7.0.1",
-    "nodemon": "^3.1.10",
-    "ts-node": "^10.9.2",
     "typescript": "^5.9.2"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10",
+    "ts-node": "^10.9.2"
   }
 }
