@@ -6,9 +6,11 @@ import Card from '../components/ui/Card';
 import CreateNoteModal from '../components/dashboard/CreateNodeModal';
 import NoteCard from '../components/dashboard/NoteCard';
 import { Plus, LogOut, Search } from 'lucide-react';
+import { useClerk } from "@clerk/clerk-react";
 
 const Dashboard: React.FC = () => {
   const { user, logout } = useAuth();
+  const { signOut } = useClerk();
   const { notes, isLoading, createNote, updateNote, deleteNote, refetch } = useNotes();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [editingNote, setEditingNote] = useState<any>(null);
@@ -49,6 +51,15 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  const handleLogout = async () => {
+  try {
+    await logout();   // your context logout
+    await signOut();  // Clerk logout
+  } catch (error) {
+    console.error("Error logging out:", error);
+  }
+};
+
   const maskEmail = (email: string) => {
     const [username, domain] = email.split('@');
     const maskedUsername = 'x'.repeat(username.length);
@@ -75,7 +86,7 @@ const Dashboard: React.FC = () => {
               <span className="text-lg font-semibold text-black">Dashboard</span>
             </div>
             <button
-              onClick={logout}
+              onClick={handleLogout}
               className="text-blue-600 font-medium hover:text-blue-700 text-sm underline"
             >
               Sign Out
@@ -157,7 +168,7 @@ const Dashboard: React.FC = () => {
             </div>
             </div>
             <Button
-              onClick={logout}
+              onClick={handleLogout}
               variant="outline"
               className="flex items-center bg-blue-500 text-white hover:bg-blue-600"
             >

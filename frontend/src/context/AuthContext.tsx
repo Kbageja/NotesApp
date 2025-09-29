@@ -1,8 +1,11 @@
+"use client"
+
 import type React from "react"
 import { createContext, useContext, useReducer, useEffect } from "react"
-import type { User } from "@/types"
+import type { User } from "../types"
 import apiService from "../services/api"
 import toast from "react-hot-toast"
+
 
 interface AuthState {
   user: User | null
@@ -38,7 +41,7 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
         token: action.payload.token,
         isAuthenticated: true,
         isLoading: false,
-        needsVerification: state.needsVerification, // ⚡ preserve OTP state
+        needsVerification: state.needsVerification,
       }
     case "UPDATE_USER":
       return {
@@ -55,15 +58,6 @@ const authReducer = (state: AuthState, action: AuthAction): AuthState => {
   }
 }
 
-interface AuthContextType extends AuthState {
-  login: (email: string, password: string) => Promise<void>
-  register: (data: RegisterData) => Promise<void>
-  logout: () => void
-  verifyOTP: (otp: string) => Promise<void>
-  resendOTP: () => Promise<void>
-  sendOTP: () => Promise<void>
-}
-
 interface RegisterData {
   name: string
   email: string
@@ -71,24 +65,32 @@ interface RegisterData {
   dateOfBirth?: string
 }
 
+interface AuthContextType extends AuthState {
+  login: (email: string, password: string) => Promise<void>
+  register: (data: RegisterData) => Promise<void>
+  logout: () => void
+  verifyOTP: (otp: string) => Promise<void>
+  resendOTP: () => Promise<void>
+  sendOTP: () => Promise<void>
+  googleAuth: (googleData: { googleId: string; name: string; email: string }) => Promise<boolean>
+}
+
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, dispatch] = useReducer(authReducer, initialState)
 
-  // Restore state from localStorage
+  // Restore state from memory variables only (no localStorage)
   useEffect(() => {
-    const userData = localStorage.getItem("user_data")
     const token = localStorage.getItem("auth_token")
-    const needsVerification = localStorage.getItem("needs_verification") === "true"
+    const userData = localStorage.getItem("user_data")
 
-    if (userData) {
-      const user = JSON.parse(userData)
-      if (!user.isVerified || needsVerification) {
-        dispatch({ type: "SET_NEEDS_VERIFICATION", payload: true })
-      } else if (token) {
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData)
         dispatch({ type: "SET_USER", payload: { user, token } })
-      } else {
+      } catch (e) {
+        console.error("Failed to parse user data:", e)
         dispatch({ type: "SET_LOADING", payload: false })
       }
     } else {
@@ -98,37 +100,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (email: string, password: string) => {
     try {
-      console.log("[v0] Starting login process...")
+      console.log("Starting login process...")
       const response = await apiService.login({ email, password })
 
       if (response.success && response.data) {
         const { user, token } = response.data
-        console.log("[v0] Login successful, user verified:", user.isVerified)
+        console.log("Login successful, user verified:", user.isVerified)
 
         localStorage.setItem("auth_token", token)
         localStorage.setItem("user_data", JSON.stringify(user))
 
         if (user.isVerified) {
-          localStorage.removeItem("needs_verification")
           dispatch({ type: "SET_USER", payload: { user, token } })
           toast.success("Login successful!")
         } else {
-          localStorage.setItem("needs_verification", "true")
           dispatch({ type: "SET_NEEDS_VERIFICATION", payload: true })
           toast.error("Email verification required")
         }
       }
     } catch (error: any) {
-      console.log("[v0] Login error caught:", error.response?.data)
+      console.log("Login error caught:", error.response?.data)
       if (!error.response) throw error
 
       const errorData = error.response.data
       if (errorData?.errors && errorData.errors.length > 0) {
         const userError = errorData.errors[0]
         if (userError.token) {
-          console.log("[v0] Storing token from verification error:", userError.token)
+          console.log("Storing token from verification error:", userError.token)
 
-          // Store token and user data from errors array
           localStorage.setItem("auth_token", userError.token)
           localStorage.setItem(
             "user_data",
@@ -140,7 +139,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
               authProvider: userError.authProvider,
             }),
           )
-          localStorage.setItem("needs_verification", "true")
 
           dispatch({ type: "SET_NEEDS_VERIFICATION", payload: true })
           toast.error(errorData.message || "Email verification required")
@@ -148,7 +146,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         }
       }
 
-      // Fallback for other verification errors
       if (errorData?.message?.includes("verify")) {
         dispatch({ type: "SET_NEEDS_VERIFICATION", payload: true })
         toast.error(errorData.message || "Email verification required")
@@ -169,7 +166,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           const user = JSON.parse(userData)
           const updatedUser = { ...user, isVerified: true }
           localStorage.setItem("user_data", JSON.stringify(updatedUser))
-          localStorage.removeItem("needs_verification")
           dispatch({ type: "SET_USER", payload: { user: updatedUser, token } })
         }
         toast.success("Email verified successfully!")
@@ -205,25 +201,22 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const register = async (data: RegisterData) => {
     try {
-      dispatch({ type: "SET_LOADING", payload: true })
-      console.log("[v0] Starting registration process...")
+      
       const response = await apiService.register(data)
 
       if (response.success && response.data) {
-        console.log("[v0] Registration successful, token received:", response.data.token)
+        console.log("Registration successful, token received:", response.data.token)
         const { user, token } = response.data
 
-        // Store token and user data from successful registration response
         localStorage.setItem("auth_token", token)
         localStorage.setItem("user_data", JSON.stringify(user))
-        localStorage.setItem("needs_verification", "true")
 
         dispatch({ type: "SET_NEEDS_VERIFICATION", payload: true })
         toast.success("Registration successful! Please verify your email.")
       }
     } catch (error: any) {
       dispatch({ type: "SET_LOADING", payload: false })
-      console.log("[v0] Registration error:", error.response?.data)
+      console.log("Registration error:", error.response?.data)
       const message = error.response?.data?.message || "Registration failed"
       toast.error(message)
       throw error
@@ -233,9 +226,51 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     localStorage.removeItem("auth_token")
     localStorage.removeItem("user_data")
-    localStorage.removeItem("needs_verification")
     dispatch({ type: "CLEAR_USER" })
     toast.success("Logged out successfully")
+  }
+
+  const googleAuth = async (googleData: { googleId: string; name: string; email: string }): Promise<boolean> => {
+    try {
+      console.log("AuthContext - Starting Google auth with data:", googleData)
+
+      if (!googleData.googleId || !googleData.email) {
+        console.error("AuthContext - Invalid Google data:", googleData)
+        toast.error("Invalid Google authentication data")
+        return false
+      }
+
+      const response = await apiService.googleAuth(googleData)
+      console.log("AuthContext - Google auth API response:", response)
+
+      if (response.success && response.data) {
+        const { user, token } = response.data
+        console.log("AuthContext - Google auth successful:", {
+          userId: user.id,
+          userEmail: user.email,
+          isVerified: user.isVerified,
+        })
+
+        // Store in localStorage
+        localStorage.setItem("auth_token", token)
+        localStorage.setItem("user_data", JSON.stringify(user))
+
+        // Update context state
+        dispatch({ type: "SET_USER", payload: { user, token } })
+        
+        toast.success("Signed in successfully!")
+        return true
+      } else {
+        console.error("AuthContext - Google auth failed:", response.message)
+        toast.error(response.message || "Google sign in failed")
+        return false
+      }
+    } catch (error: any) {
+      console.error("AuthContext - Google auth error:", error)
+      const message = error.response?.data?.message || error.message || "Google sign in failed"
+      toast.error(message)
+      return false
+    }
   }
 
   return (
@@ -248,6 +283,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         verifyOTP,
         resendOTP,
         sendOTP,
+        googleAuth,
       }}
     >
       {children}

@@ -1,17 +1,19 @@
-
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from './context/AuthContext';
 import SignUp from './pages/Signup';
 import SignIn from './pages/SignIn';
 import Dashboard from './pages/Dashboard';
 import LoadingScreen from './components/ui/LoadingScreen';
+import SSOCallback from './pages/SSOCallback';
 
 function App() {
-  const { isAuthenticated, isLoading, user } = useAuth();
+  const { isAuthenticated, isLoading, user } = useAuth()
 
   if (isLoading) {
-    return <LoadingScreen />;
+    return <LoadingScreen />
   }
+
+  const isUserAuthenticated = isAuthenticated && user?.isVerified
 
   return (
     <div className="App">
@@ -20,7 +22,7 @@ function App() {
         <Route 
           path="/signup" 
           element={
-            isAuthenticated && user?.isVerified ? 
+            isUserAuthenticated ? 
             <Navigate to="/dashboard" replace /> : 
             <SignUp />
           } 
@@ -28,17 +30,20 @@ function App() {
         <Route 
           path="/signin" 
           element={
-            isAuthenticated && user?.isVerified ? 
+            isUserAuthenticated ? 
             <Navigate to="/dashboard" replace /> : 
             <SignIn />
           } 
         />
         
+        {/* SSO Callback Route */}
+        <Route path="/sso-callback" element={<SSOCallback />} />
+        
         {/* Protected Routes */}
         <Route 
           path="/dashboard" 
           element={
-            isAuthenticated && user?.isVerified ? 
+            isUserAuthenticated ? 
             <Dashboard /> : 
             <Navigate to="/signin" replace />
           } 
@@ -49,7 +54,7 @@ function App() {
           path="/" 
           element={
             <Navigate to={
-              isAuthenticated && user?.isVerified ? "/dashboard" : "/signin"
+              isUserAuthenticated ? "/dashboard" : "/signin"
             } replace />
           } 
         />

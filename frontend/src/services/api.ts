@@ -1,4 +1,5 @@
 import axios, { type AxiosInstance, type AxiosResponse, type AxiosError } from "axios"
+import { toast } from "react-hot-toast"
 
 interface ApiResponse<T = any> {
   success: boolean
@@ -19,14 +20,13 @@ class ApiService {
       },
     })
 
+    // ✅ Request interceptor
     this.api.interceptors.request.use(
       (config) => {
         if (typeof window !== "undefined") {
           const token = localStorage.getItem("auth_token")
-          console.log("[v0] Token from localStorage:", token ? "exists" : "not found")
           if (token) {
             config.headers.Authorization = `Bearer ${token}`
-            console.log("[v0] Added Bearer token to request")
           }
         }
         return config
@@ -34,10 +34,19 @@ class ApiService {
       (error) => Promise.reject(error),
     )
 
+    // ✅ Response interceptor (handles all API errors globally)
     this.api.interceptors.response.use(
       (response: AxiosResponse<ApiResponse>) => response,
       (error: AxiosError<ApiResponse>) => {
-        console.log("[v0] API Error:", error.response?.status, error.response?.data)
+        console.error("[API Error]", error.response?.status, error.response?.data)
+
+        const message =
+          (error.response?.data as any)?.message ||
+          (error as any).message ||
+          "Something went wrong"
+
+        toast.error(message) // 🔥 Show toast for all errors
+
         if (error.response?.status === 401) {
           if (typeof window !== "undefined") {
             localStorage.removeItem("auth_token")
@@ -45,6 +54,7 @@ class ApiService {
             localStorage.removeItem("needs_verification")
           }
         }
+
         return Promise.reject(error)
       },
     )
@@ -60,20 +70,14 @@ class ApiService {
     return response.data
   }
 
-  async login(credentials: {
-    email: string
-    password: string
-  }): Promise<ApiResponse> {
+  async login(credentials: { email: string; password: string }): Promise<ApiResponse> {
     try {
-      console.log("[v0] Attempting login...")
       const response = await this.api.post("/auth/login", credentials)
-      console.log("[v0] Login response:", response.data)
       return response.data
     } catch (error: any) {
-      console.log("[v0] Login error:", error.response?.data)
+      // ✅ Additional logic for verification flow
       if (error.response?.data?.user && error.response?.data?.token) {
         const { user, token } = error.response.data
-        console.log("[v0] Storing token from error response:", token)
         if (typeof window !== "undefined") {
           localStorage.setItem("auth_token", token)
           localStorage.setItem("user_data", JSON.stringify(user))
@@ -82,6 +86,11 @@ class ApiService {
       }
       throw error
     }
+  }
+
+  async googleAuth(googleData: { googleId: string; name: string; email: string }) {
+    const response = await this.api.post("/auth/google", googleData)
+    return response.data
   }
 
   async sendOTP(): Promise<ApiResponse> {
@@ -109,21 +118,12 @@ class ApiService {
     return response.data
   }
 
-  async createNote(noteData: {
-    title: string
-    content: string
-  }): Promise<ApiResponse> {
+  async createNote(noteData: { title: string; content: string }): Promise<ApiResponse> {
     const response = await this.api.post("/notes", noteData)
     return response.data
   }
 
-  async updateNote(
-    id: string,
-    noteData: {
-      title: string
-      content: string
-    },
-  ): Promise<ApiResponse> {
+  async updateNote(id: string, noteData: { title: string; content: string }): Promise<ApiResponse> {
     const response = await this.api.put(`/notes/${id}`, noteData)
     return response.data
   }

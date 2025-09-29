@@ -89,7 +89,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({ note, onClose, onSave
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
+            className="text-gray-400  hover:text-red-600 transition-colors"
           >
             <X className="w-6 h-6" />
           </button>
@@ -142,6 +142,7 @@ const CreateNoteModal: React.FC<CreateNoteModalProps> = ({ note, onClose, onSave
           </Button>
           <Button
             onClick={handleSave}
+            className='bg-blue-500 text-white font-semibold hover:bg-blue-600'
             disabled={!title.trim() || !content.trim()}
           >
             {isEditMode ? 'Update Note' : 'Create Note'}

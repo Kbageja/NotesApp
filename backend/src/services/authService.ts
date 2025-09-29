@@ -139,9 +139,12 @@ export class AuthService {
     email: string;
   }): Promise<{ success: boolean; message: string; user?: any; token?: string; isNewUser?: boolean }> {
     try {
+      console.log("📌 Inside authService.googleAuth just before returning");
       let user = await User.findOne({ 
         $or: [{ googleId: googleData.googleId }, { email: googleData.email }]
       }) as import('../types').DBUser | null;
+
+      console.log(user,"google auth user");
 
       let isNewUser = false;
 

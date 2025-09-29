@@ -8,6 +8,8 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Toaster } from 'react-hot-toast';
 import { AuthProvider } from './context/AuthContext';
 import ErrorBoundary from './components/ErrorBoundary';
+import { ClerkProvider } from '@clerk/clerk-react'
+
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -17,12 +19,25 @@ const queryClient = new QueryClient({
     },
   },
 });
+const PUBLISHABLE_KEY = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY
 
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <ErrorBoundary>
-      <QueryClientProvider client={queryClient}>
-        <BrowserRouter>
+import { useNavigate } from 'react-router-dom';
+
+function Root() {
+  const navigate = useNavigate();
+
+  // Clerk expects routerPush: (to: string) => void
+  const clerkRouterPush = (to: string) => navigate(to);
+  const clerkRouterReplace = (to: string) => navigate(to, { replace: true });
+
+  return (
+    <ClerkProvider
+      publishableKey={PUBLISHABLE_KEY}
+      routerPush={clerkRouterPush}
+      routerReplace={clerkRouterReplace}
+    >
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
           <AuthProvider>
             <App />
             <Toaster 
@@ -52,8 +67,16 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               }}
             />
           </AuthProvider>
-        </BrowserRouter>
-      </QueryClientProvider>
-    </ErrorBoundary>
+        </QueryClientProvider>
+      </ErrorBoundary>
+    </ClerkProvider>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <BrowserRouter>
+      <Root />
+    </BrowserRouter>
   </React.StrictMode>,
 );
