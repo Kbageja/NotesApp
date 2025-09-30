@@ -3,10 +3,12 @@ import nodemailer from 'nodemailer';
 // Create transporter for Gmail
 const createTransporter = () => {
   return nodemailer.createTransport({
-    service: 'gmail', // Use Gmail service
+    host: "smtp-relay.brevo.com",
+    port: 587,          // use 587 with TLS
+    secure: false,      // set true only if using port 465
     auth: {
-      user: process.env.EMAIL_USER!,
-      pass: process.env.EMAIL_PASS!,
+      user: "983243001@smtp-brevo.com",  // your SMTP login (from Brevo dashboard)
+      pass: process.env.BREVO_SMTP_KEY!, // the SMTP key you generated
     },
   });
 };
