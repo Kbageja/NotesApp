@@ -14,7 +14,7 @@ class ApiService {
   constructor() {
     this.api = axios.create({
       baseURL: import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api",
-      timeout: 50000,
+      timeout: 500000,
       headers: {
         "Content-Type": "application/json",
       },
